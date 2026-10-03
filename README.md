@@ -1,184 +1,94 @@
-# Phase 2, Track 3, Day 17: Memory Systems for AI Agent
+# K4-DAY17-NguyenVanDuy-2A202602729
 
-Trong Day 17 này, các bạn sẽ tập trung vào một câu hỏi rất thực tế: làm sao để AI agent **không chỉ trả lời tốt trong một lượt chat**, mà còn **nhớ đúng thông tin quan trọng qua nhiều phiên làm việc** mà vẫn kiểm soát được chi phí token.
+Bài làm cá nhân Lab 17: so sánh bộ nhớ của hai AI agent trên cùng dữ liệu tiếng Việt.
 
-Trong bài lab này, các bạn sẽ xây dựng và so sánh hai agent:
+- **Người thực hiện:** Nguyễn Văn Duy.
+- **MSSV:** 2A202602729.
+- **Nguồn scaffold:** https://github.com/VinUni-AI20k/day17-cohort4-MemorySystems4Agent
+- **Commit nguồn:** dc0e2dab1c9d2043472bf4e17cf0dcc8c7c76c6d.
+- **Dữ liệu:** giữ nguyên hai file do lớp cung cấp.
+- **Chế độ mặc định:** offline, chạy mô phỏng tất định, không cần khóa API.
 
-- `Baseline Agent`: chỉ có short-term memory trong cùng một thread
-- `Advanced Agent`: có short-term memory, `User.md` bền vững, và compact memory để nén hội thoại dài
+## Chạy bài
 
-Mục tiêu cuối cùng không phải chỉ là “agent nhớ nhiều hơn”, mà là hiểu rõ trade-off giữa:
+Python 3.11 trở lên. Mở terminal tại thư mục này:
 
-- độ nhớ dài hạn
-- chất lượng phản hồi
-- chi phí token
-- độ phức tạp của hệ thống memory
-
-## Các bạn sẽ làm gì trong track này?
-
-Sau khi hoàn thành, các bạn cần có khả năng:
-
-- phân biệt `short-term memory`, `persistent memory`, và `compact memory`
-- xây dựng agent baseline và advanced trên cùng một benchmark
-- lưu hồ sơ người dùng bằng `User.md`
-- kích hoạt compact memory khi hội thoại dài vượt ngưỡng
-- benchmark hai agent bằng cùng một bộ dữ liệu tiếng Việt
-- đọc kết quả benchmark theo các chỉ số recall, token, memory growth, chất lượng phản hồi
-
-## Cấu trúc codebase
-
-```
-.
-├── README.md        # giới thiệu track (file này)
-├── Guide.md         # hướng dẫn từng bước
-├── Rubric.md        # tiêu chí chấm điểm
-├── data/            # dữ liệu benchmark dùng chung
-│   ├── conversations.json
-│   └── advanced_long_context.json
-└── src/             # bản scaffold dành cho sinh viên (pseudocode + TODO)
-    ├── model_provider.py
-    ├── config.py
-    ├── memory_store.py
-    ├── agent_baseline.py
-    ├── agent_advanced.py
-    ├── benchmark.py
-    └── test_agents.py
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe src/benchmark.py
+.\.venv\Scripts\python.exe -m pytest src/test_agents.py -v
+.\.venv\Scripts\python.exe -m pytest src -v
 ```
 
-Khi chạy, agent sẽ ghi trạng thái (ví dụ `state/profiles/<user>/User.md`) vào thư mục `state/`. Thư mục này đã nằm trong `.gitignore`.
+Khi đã kích hoạt môi trường, hai lệnh theo đề là:
 
-### Vai trò từng file trong `src/`
-
-Các file được liệt kê theo thứ tự nên triển khai:
-
-| File | Vai trò | Thành phần chính |
-|---|---|---|
-| `model_provider.py` | Khởi tạo chat model cho từng provider | `ProviderConfig`, `normalize_provider()`, `build_chat_model()` |
-| `config.py` | Cấu hình chung của lab | `LabConfig` (đường dẫn, ngưỡng compact, model chính + judge), `load_config()` |
-| `memory_store.py` | Lõi memory layer | `estimate_tokens()`, `UserProfileStore` (read/write/edit `User.md`), `extract_profile_updates()`, `summarize_messages()`, `CompactMemoryManager` |
-| `agent_baseline.py` | Agent A: chỉ nhớ trong cùng thread | `BaselineAgent.reply()`, `token_usage()`, `prompt_token_usage()` |
-| `agent_advanced.py` | Agent B: short-term + `User.md` + compact | `AdvancedAgent.reply()`, `_reply_offline()`, `_estimate_prompt_context_tokens()`, `_offline_response()` |
-| `benchmark.py` | So sánh hai agent trên hai bộ dữ liệu | `run_agent_benchmark()`, `recall_points()`, `heuristic_quality()`, `format_rows()` |
-| `test_agents.py` | Kiểm chứng hành vi memory | test `User.md`, compact trigger, cross-session recall, giảm prompt load |
-
-### Luồng xử lý một lượt của Advanced Agent
-
-```
-message người dùng
-  → extract_profile_updates()      # trích fact ổn định: tên, nơi ở, nghề, style...
-  → ghi vào User.md                # persistent memory
-  → CompactMemoryManager.append()  # short-term memory, tự compact khi vượt ngưỡng
-  → prompt = User.md + summary + recent messages
-  → sinh câu trả lời → cập nhật bộ đếm token
-```
-
-Baseline Agent chỉ giữ danh sách message theo `thread_id`. Sang thread mới, nó **phải quên** toàn bộ fact cũ.
-
-Cả hai agent nên có **chế độ offline** cho ra kết quả lặp lại được, để benchmark và test chạy được mà không cần API key. Chế độ live (LangChain/LangGraph) là phần mở rộng.
-
-## Dữ liệu benchmark
-
-| File | Nội dung | Mục tiêu |
-|---|---|---|
-| `data/conversations.json` | 10 hội thoại khoảng 10 lượt, user `dungct`, kèm `recall_questions` | Standard benchmark: đo recall qua nhiều phiên bình thường |
-| `data/advanced_long_context.json` | 1 hội thoại 16 lượt rất dài, user `dungct_stress` | Long-context stress benchmark: ép compact xảy ra nhiều lần |
-
-Mỗi hội thoại có dạng:
-
-```json
-{
-  "id": "conv-01",
-  "user_id": "dungct",
-  "turns": ["...", "..."],
-  "recall_questions": [
-    { "question": "...", "expected_contains": ["DũngCT", "cà phê sữa đá"] }
-  ]
-}
-```
-
-`recall_questions` được hỏi ở **thread mới**. Điểm recall dựa trên số chuỗi trong `expected_contains` xuất hiện trong câu trả lời.
-
-Dữ liệu cố tình chứa các tình huống khó:
-
-- **correction**: nơi ở đổi giữa Đà Nẵng và Huế, agent phải giữ fact mới nhất
-- **nhiễu**: "Hà Nội" chỉ là nơi đi họp, "product manager" chỉ là câu đùa
-- **ngữ cảnh dài**: nhiều đoạn tin tức dài trong stress test để làm lộ chi phí prompt của baseline
-
-## Provider hỗ trợ
-
-Trong bản solved lab, runtime hỗ trợ các provider sau:
-
-- `openai`
-- `custom` (OpenAI-compatible base URL)
-- `gemini`
-- `anthropic`
-- `ollama`
-- `openrouter`
-
-Điều này quan trọng vì memory system không nên bị khóa vào một provider duy nhất.
-
-## Chỉ số benchmark cần hiểu
-
-Khi hoàn thiện bài, benchmark nên cho các cột sau:
-
-- `Agent tokens only`: token sinh ra trực tiếp trong hội thoại của agent
-- `Prompt tokens processed`: lượng ngữ cảnh agent phải kéo theo qua các lượt
-- `Cross-session recall`: khả năng nhớ facts qua thread hoặc session mới
-- `Response quality`: chất lượng phản hồi
-- `Memory growth (bytes)`: tốc độ phình của file memory
-- `Compactions`: số lần compact memory đã nén lịch sử cũ
-
-Điểm quan trọng nhất của track này là:
-
-- ở hội thoại ngắn, `Advanced` có thể tốn hơn `Baseline` về token usage
-- ở hội thoại rất dài, compact memory nên giúp `Advanced` xử lý ngữ cảnh hiệu quả hơn đáng kể + tiết kiệm usage.
-
-## Setup môi trường
-
-Các bạn cần chuẩn bị môi trường Python `>= 3.11` và cài các package cần thiết cho LangChain, LangGraph, provider SDK, `python-dotenv`, `tabulate`, và `pytest`.
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install langchain langgraph langchain-openai langchain-google-genai langchain-anthropic langchain-ollama langchain-openrouter python-dotenv tabulate pytest
-```
-
-Nếu muốn chạy chế độ live với LLM thật, hãy tạo file `.env` ở root repo (đã nằm trong `.gitignore`). Tên biến môi trường do các bạn quyết định khi viết `load_config()`. Ví dụ:
-
-```
-LLM_PROVIDER=openai
-LLM_MODEL=gpt-4o-mini
-OPENAI_API_KEY=...
-```
-
-## Chạy benchmark và test
-
-Sau khi hoàn thiện `src/`, chạy từ root repo:
-
-```bash
+```text
 python src/benchmark.py
-```
-
-```bash
 pytest src/test_agents.py -v
 ```
 
-Benchmark cần in ra hai bảng: **Standard Benchmark** và **Long-Context Stress Benchmark**. Mỗi bảng so sánh Baseline với Advanced theo đủ 6 cột trong phần "Chỉ số benchmark cần hiểu".
+Hai bảng có sáu chỉ số, cùng câu hỏi được hỏi ở thread mới. Benchmark tạo thư mục tạm sạch cho từng bộ dữ liệu và tự giải phóng sau khi chạy, nên không phụ thuộc hồ sơ còn sót trong `state/`.
 
-## Cách dùng repo này
+## Phân biệt bộ nhớ
 
-Nếu các bạn là sinh viên:
+| Lớp | Baseline | Advanced |
+|---|---|---|
+| Bộ nhớ trong phiên | Toàn bộ tin nhắn theo thread | Tin nhắn gần nhất theo thread |
+| Bộ nhớ bền vững | Không có | Fact theo khóa trong User.md |
+| Nén hội thoại | Không có | Tóm tắt tích lũy và giữ 4 tin nhắn gần nhất |
 
-- làm bài trong `src/`
-- dùng `data/` làm benchmark input
+Baseline và Advanced dùng cùng bộ trích fact, cùng hàm trả lời mô phỏng và cùng cách ước lượng token. Chỉ bộ nhớ được cung cấp khác nhau. Hai agent không nhận `expected_contains` hoặc đáp án chuẩn; các chuỗi này chỉ xuất hiện ở bước chấm điểm.
 
-Nếu các bạn là giảng viên hoặc reviewer:
+## File cần xem
 
-- dùng `src/` để đánh giá scaffold giao cho sinh viên và kết quả hoàn thiện cuối cùng
+| File | Nội dung |
+|---|---|
+| src/config.py | Đường dẫn, cấu hình model chính/model judge, ngưỡng nén |
+| src/model_provider.py | Sáu provider; đồ thị LangGraph có checkpoint trong RAM |
+| src/memory_store.py | User.md, trích fact, sửa mâu thuẫn, tóm tắt |
+| src/agent_baseline.py | Nhớ trong thread; không đọc hồ sơ trên đĩa |
+| src/agent_advanced.py | Đọc/ghi hồ sơ và dùng ngữ cảnh nén |
+| src/benchmark.py | Hai benchmark và phép đo Advanced khi tắt nén |
+| src/test_agents.py | Bốn test bắt buộc |
+| src/test_edge_cases.py | Câu hỏi, correction, nhiễu, cách ly người dùng và checkpoint |
+| STEP8.md | Trả lời bốn câu hỏi phân tích của Guide |
+| artifacts/benchmark_results.json | Số liệu, câu trả lời thật, điểm và mã băm dữ liệu |
+| artifacts/benchmark_output.txt | Hai bảng in ra từ lệnh chạy |
+| artifacts/verification.json | Biên nhận kiểm thử và kiểm tra tái lập |
 
-## Tài liệu nên đọc tiếp
+## Kết quả và giới hạn
 
-- `Guide.md`: hướng dẫn từng bước để hoàn thành lab
-- `Rubric.md`: tiêu chí chấm điểm và bonus
+Kết quả mới nhất được lưu trong `artifacts/` và phân tích ở `STEP8.md`.
 
-Track này được thiết kế để các bạn không chỉ “dùng agent”, mà còn bắt đầu nghĩ như một người thiết kế **memory system** cho agent production.
+Điểm recall đo số fact tìm được qua phiên mới. Response quality trong bài là **chỉ số thay thế dựa trên độ bao phủ fact**, không phải đánh giá độc lập bằng một model judge. Token là ước lượng ký tự, không phải token tính tiền của nhà cung cấp. Không diễn giải điểm 100% của mô phỏng thành chất lượng LLM ngoài thực tế.
+
+## Cấu hình
+
+`.env.example` liệt kê tên biến được dùng. Mặc định:
+
+```dotenv
+LLM_MODE=offline
+COMPACT_THRESHOLD_TOKENS=1200
+COMPACT_KEEP_MESSAGES=4
+```
+
+`LLM_MODE=live` bật model thật. Provider hỗ trợ: openai, custom, gemini, anthropic, ollama, openrouter. Khóa chỉ đặt ở biến môi trường hoặc `.env`; không đưa vào repo.
+
+Model judge có cấu hình riêng `JUDGE_PROVIDER` và `JUDGE_MODEL`, nhưng benchmark bắt buộc hiện dùng phép chấm tất định. Đường live có đồ thị gọi model và checkpoint theo thread; test bằng model giả xác nhận lịch sử đã nén không bị checkpoint nối lại. Bài chưa có phép đo trên API thật, chưa có tool quản lý memory cho model tự gọi, và không tuyên bố đây là dịch vụ production.
+
+## Bonus đã triển khai
+
+- Trích xuất fact theo trường, từ phát biểu ngôi thứ nhất.
+- Fact đơn trị như nơi ở và nghề được thay bằng giá trị mới.
+- Bỏ qua câu hỏi, nội dung trong dấu ngoặc kép, tình huống giả định và câu đùa.
+- Giữ nhiều sở thích khác nhau trong danh sách giới hạn sáu mục.
+- Số bullet mới thay số cũ.
+- Đường dẫn hồ sơ có mã băm để tránh va chạm ID và thoát thư mục.
+- Người dùng khác không được dùng lại thread đã có chủ sở hữu.
+
+Không có confidence model hoặc memory decay tự động; hai phần này là hướng mở rộng, chưa được ghi là tính năng hoàn thành.
+
+## Bảo vệ dữ liệu bài làm
+
+`.env`, `state/`, `.venv/`, cache và log được bỏ qua trong Git. `data/` được giữ nguyên và kiểm tra với commit nguồn. Nội dung đầy đủ của khóa học chỉ lưu local; repo nộp chứa code, dữ liệu benchmark gốc và phần phân tích bài làm.

@@ -1,0 +1,28 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.1.1, pluggy-1.6.0 -- C:\nextjs_project\K4-DAY17-NguyenVanDuy-2A202602729\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\nextjs_project\K4-DAY17-NguyenVanDuy-2A202602729
+plugins: anyio-4.15.1, langsmith-0.14.4
+collecting ... collected 19 items
+
+src/test_agents.py::test_user_markdown_read_write_edit PASSED            [  5%]
+src/test_agents.py::test_compact_trigger PASSED                          [ 10%]
+src/test_agents.py::test_cross_session_recall PASSED                     [ 15%]
+src/test_agents.py::test_compact_reduces_prompt_load_on_long_thread PASSED [ 21%]
+src/test_edge_cases.py::test_interests_survive_new_preference PASSED     [ 26%]
+src/test_edge_cases.py::test_correction_replaces_fact_and_noise_does_not_write PASSED [ 31%]
+src/test_edge_cases.py::test_profile_users_are_isolated_and_paths_cannot_escape PASSED [ 36%]
+src/test_edge_cases.py::test_summary_survives_multiple_compactions_without_growth PASSED [ 42%]
+src/test_edge_cases.py::test_questions_and_quoted_facts_do_not_become_memory PASSED [ 47%]
+src/test_edge_cases.py::test_latest_number_of_bullets_replaces_old_style PASSED [ 52%]
+src/test_edge_cases.py::test_coordinated_first_person_fact_is_extracted PASSED [ 57%]
+src/test_edge_cases.py::test_provider_configuration_is_supported_and_secret_not_printed[openai] PASSED [ 63%]
+src/test_edge_cases.py::test_provider_configuration_is_supported_and_secret_not_printed[custom] PASSED [ 68%]
+src/test_edge_cases.py::test_provider_configuration_is_supported_and_secret_not_printed[gemini] PASSED [ 73%]
+src/test_edge_cases.py::test_provider_configuration_is_supported_and_secret_not_printed[anthropic] PASSED [ 78%]
+src/test_edge_cases.py::test_provider_configuration_is_supported_and_secret_not_printed[ollama] PASSED [ 84%]
+src/test_edge_cases.py::test_provider_configuration_is_supported_and_secret_not_printed[openrouter] PASSED [ 89%]
+src/test_edge_cases.py::test_provider_alias_and_rejection PASSED         [ 94%]
+src/test_edge_cases.py::test_live_graph_only_sends_curated_context PASSED [100%]
+
+============================= 19 passed in 1.42s ==============================

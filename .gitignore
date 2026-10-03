@@ -6,3 +6,7 @@ __pycache__/
 *.pyc
 .DS_Store
 state/
+.venv/
+.ruff_cache/
+*.log
+docs/VLEARN-LAB17.md

@@ -1,0 +1,8 @@
+{
+  "repo": "https://github.com/VinUni-AI20k/day17-cohort4-MemorySystems4Agent",
+  "commit": "dc0e2dab1c9d2043472bf4e17cf0dcc8c7c76c6d",
+  "dataset_sha256": {
+    "advanced_long_context.json": "8532a0f68298dc3d070210864f0a776bc51df0b5b19766944f1651643a914f8d",
+    "conversations.json": "13f6569675500babce3d4a7fc4f5b2c2bea65af12be7d96d2a04d21b7d0a803c"
+  }
+}

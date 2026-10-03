@@ -1,0 +1,14 @@
+{
+  "verified_at": "2026-10-03T10:14:34.360085+00:00",
+  "mode": "offline",
+  "required_tests": "============================== 4 passed in 0.70s ==============================",
+  "all_tests": "============================= 19 passed in 1.42s ==============================",
+  "reproducible": true,
+  "dataset_unchanged": true,
+  "dataset_sha256": {
+    "advanced_long_context.json": "8532a0f68298dc3d070210864f0a776bc51df0b5b19766944f1651643a914f8d",
+    "conversations.json": "13f6569675500babce3d4a7fc4f5b2c2bea65af12be7d96d2a04d21b7d0a803c"
+  },
+  "live_api_calls": 0,
+  "verification_scope": "local code, datasets and reproducibility"
+}
